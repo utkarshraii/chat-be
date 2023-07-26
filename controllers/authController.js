@@ -7,6 +7,8 @@ const AppError = require('./../utils/appError');
 // const sendEmail = require('./../utils/email');
 // const sendEmail2 = require('./../utils/email');
 const Email = require('./../utils/email');
+const filterObject = require('../utils/filterObject');
+const otpGenerator = require('otp-generator');
 
 const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -47,10 +49,10 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordConfirm: req.body.passwordConfirm,
   });
 
-  // const url = `${req.protocol}://${req.get('host')}/me`;
-  // console.log(url);
+  const url = `${req.protocol}://${req.get('host')}/me`;
+  console.log(url);
 
-  // await new Email(newUser, url).sendWelcome();
+  await new Email(newUser, url).sendWelcome();
 
   createSendToken(newUser, 201, req, res);
 });
@@ -215,5 +217,115 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
   // 3) Update changedPasswordAt property for the user... did it in userModel
   // 4) Log the user in, send JWT
+  createSendToken(user, 200, req, res);
+});
+
+// ============================ More Advanced SignUp ==========================
+exports.register = catchAsync(async (req, res, next) => {
+  const { name, email, password } = req.body;
+
+  const filteredBody = filterObject(req.body, 'name', 'email', 'password');
+
+  // check if verified user with the email is already registered
+  const userExist = await User.findOne({ email: email });
+
+  if (userExist && userExist.verified) {
+    // res
+    //   .status(400)
+    //   .json({
+    //     status: 'error',
+    //     message: 'Email already registered, try logging in',
+    //   });
+
+    return next(new AppError('Email already registered, try logging in', 400));
+  } else if (userExist) {
+    await User.findOneAndUpdate({ email: email }, filteredBody, {
+      new: true,
+      validateModifiedOnly: true,
+    });
+
+    // Generate OTP and send email to user
+    req.userId = userExist._id;
+    next();
+  } else {
+    const newUser = await User.create(filteredBody);
+
+    // Generate OTP and send email to user
+    req.userId = newUser._id;
+
+    next();
+  }
+});
+
+exports.sendOTP = catchAsync(async (req, res, next) => {
+  const { userId } = req;
+
+  const newOtp = otpGenerator.generate(6, {
+    lowerCaseAlphabets: false,
+    upperCaseAlphabets: false,
+    specialChars: false,
+  });
+
+  const otpExpiresTime = Date.now() + 10 * 60 * 1000;
+
+  const user = await User.findByIdAndUpdate(userId, {
+    otp: newOtp,
+    otpExpiresTime,
+  });
+
+  // await user.save({ validateBeforeSave: false });
+
+  // Sending The OTP to users email address
+  const url = `${req.protocol}://${req.get('host')}/otp`;
+  console.log(url);
+
+  await new Email(user, url, newOtp).sendOTPVerify();
+
+  res
+    .status(200)
+    .json({ status: 'success', otp: newOtp, message: 'Otp sent successfully' });
+});
+
+// OTP Verification
+exports.verifyOTP = catchAsync(async (req, res, next) => {
+  const { email, otp } = req.body;
+
+  const user = await User.findOne({
+    email,
+    otpExpiresTime: { $gt: Date.now() },
+  });
+
+  console.log(user);
+  console.log(otp);
+
+  // console.log(user.otp);
+
+  if (!user) {
+    return next(new AppError('Invalid Email or Experired OTP', 401));
+  }
+
+  // if (!(await user.correctOTP(otp, user.otp))) {
+  //   return next(new AppError('Incorrect OTP', 401));
+  // }
+
+  if (user.otp != otp) {
+    return next(new AppError('Incorrect OTP', 401));
+  }
+
+  // Correct OTP
+  user.verified = true;
+  user.otp = undefined;
+
+  await user.save({
+    new: true,
+    validateModifiedOnly: true,
+  });
+
+  // Send welcome email to User
+  const url = `${req.protocol}://${req.get('host')}/me`;
+  console.log(url);
+
+  await new Email(user, url).sendWelcome();
+
   createSendToken(user, 200, req, res);
 });

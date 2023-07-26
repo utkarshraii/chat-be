@@ -30,17 +30,29 @@ const userSchema = new mongoose.Schema({
     minlength: 8,
     select: false,
   },
-  passwordConfirm: {
-    type: String,
-    required: [true, 'Please confirm your password'],
-    validate: {
-      // This only works on CREATE and SAVE!!!
-      validator: function (el) {
-        return el === this.password;
-      },
-      message: 'Passwords are not the same!',
-    },
+  // passwordConfirm: {
+  //   type: String,
+  //   required: [true, 'Please confirm your password'],
+  //   validate: {
+  //     // This only works on CREATE and SAVE!!!
+  //     validator: function (el) {
+  //       return el === this.password;
+  //     },
+  //     message: 'Passwords are not the same!',
+  //   },
+  // },
+
+  verified: {
+    type: Boolean,
+    default: false,
   },
+
+  otp: Number,
+
+  otpExpiresTime: {
+    type: Date,
+  },
+
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
@@ -59,9 +71,23 @@ userSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, 12);
 
   // Delete passwordConfirm field
-  this.passwordConfirm = undefined;
+  // this.passwordConfirm = undefined;
   next();
 });
+
+// Hashing OTP on modified
+// userSchema.pre('save', async function (next) {
+//   // Only run this function if OTP was actually modified
+//   if (!this.isModified('otp')) return next();
+
+//   // Hash the password with cost of 12
+//   this.otp = await bcrypt.hash(this.otp, 12);
+
+//   console.log(this.otp);
+
+//   // Delete passwordConfirm field
+//   next();
+// });
 
 userSchema.pre('save', function (next) {
   if (!this.isModified('password') || this.isNew) return next();
@@ -81,6 +107,11 @@ userSchema.methods.correctPassword = async function (
   userPassword
 ) {
   return await bcrypt.compare(candidatePassword, userPassword);
+};
+
+// Comparing User OTP with the Database OTP
+userSchema.methods.correctOTP = async function (candidateOTP, userOTP) {
+  return await bcrypt.compare(candidateOTP, userOTP);
 };
 
 userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
