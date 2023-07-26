@@ -278,7 +278,7 @@ exports.sendOTP = catchAsync(async (req, res, next) => {
   const url = `${req.protocol}://${req.get('host')}/otp`;
   console.log(url);
 
-  await new Email(user, url, newOtp).sendOTPVerify();
+  //await new Email(user, url, newOtp).sendOTPVerify();
 
   // mailService.sendMail({
   //   from: 'lukechidubem@gmail.com',
@@ -333,7 +333,7 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
   const url = `${req.protocol}://${req.get('host')}/me`;
   console.log(url);
 
-  await new Email(user, url).sendWelcome();
+  //await new Email(user, url).sendWelcome();
 
   createSendToken(user, 200, req, res);
 });

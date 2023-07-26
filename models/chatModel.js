@@ -3,6 +3,11 @@ const mongoose = require('mongoose');
 const chatSchema = new mongoose.Schema(
   {
     members: Array,
+
+    pinned: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

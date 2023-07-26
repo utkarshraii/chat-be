@@ -16,7 +16,11 @@ exports.createChat = catchAsync(async (req, res) => {
     members: [firstId, secondId],
   });
 
-  res.status(200).json({ chat: newChat });
+  const chats = await Chat.find({
+    members: { $in: [firstId] },
+  });
+
+  res.status(200).json({ chat: newChat, chats: chats });
 });
 
 // find user chats

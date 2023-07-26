@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 const nodemailer = require('nodemailer');
-//const mg = require("mailgun-js");
+//const mg = require('mailgun-js');
 const pug = require('pug');
 // const htmlToText  = require('html-to-text');
 const { convert } = require('html-to-text');
@@ -11,14 +11,14 @@ module.exports = class Email {
     this.firstName = user.name.split(' ')[0];
     this.url = url;
     this.otp = otp;
-    this.from = `Chat <${process.env.FROM_EMAIL_ID}>`;
+    this.from = `Chat <${process.env.EMAIL_FROM}>`;
   }
 
   newTransport() {
     return nodemailer.createTransport({
       service: 'Gmail',
       auth: {
-        user: process.env.FROM_EMAIL_ID,
+        user: process.env.EMAIL_FROM,
         pass: process.env.MAIL_PASS,
       },
     });
@@ -57,7 +57,7 @@ module.exports = class Email {
   }
 
   async sendWelcome() {
-    await this.send('welcome', 'Welcome to CALChat Family!');
+    await this.send('welcome', 'Welcome to Chat Family!');
   }
 
   async sendPasswordReset() {
