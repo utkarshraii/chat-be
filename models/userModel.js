@@ -47,7 +47,9 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
 
-  otp: Number,
+  otp: {
+    type: String,
+  },
 
   otpExpiresTime: {
     type: Date,
@@ -76,18 +78,18 @@ userSchema.pre('save', async function (next) {
 });
 
 // Hashing OTP on modified
-// userSchema.pre('save', async function (next) {
-//   // Only run this function if OTP was actually modified
-//   if (!this.isModified('otp')) return next();
+userSchema.pre('save', async function (next) {
+  // Only run this function if OTP was actually modified
+  if (!this.isModified('otp') || !this.otp) return next();
 
-//   // Hash the password with cost of 12
-//   this.otp = await bcrypt.hash(this.otp, 12);
+  // Hash the password with cost of 12
+  this.otp = await bcrypt.hash(this.otp.toString(), 12);
 
-//   console.log(this.otp);
+  console.log(this.otp.toString());
 
-//   // Delete passwordConfirm field
-//   next();
-// });
+  // Delete passwordConfirm field
+  next();
+});
 
 userSchema.pre('save', function (next) {
   if (!this.isModified('password') || this.isNew) return next();
