@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-// const { promisify } = require('util');
+const { promisify } = require('util');
 const jwt = require('jsonwebtoken');
 const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
@@ -163,7 +163,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   // 1) Get user based on POSTed email
   const user = await User.findOne({ email: req.body.email });
   if (!user) {
-    return next(new AppError('There is no user with email address.', 404));
+    return next(new AppError('There is no user with this email address.', 404));
   }
 
   // 2) Generate the random reset token
@@ -319,13 +319,10 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
     return next(new AppError('Incorrect OTP', 401));
   }
 
-  // if (user.otp != otp) {
-  //   return next(new AppError('Incorrect OTP', 401));
-  // }
-
   // Correct OTP
   user.verified = true;
   user.otp = undefined;
+  user.otpExpiresTime = undefined;
 
   await user.save({
     new: true,
