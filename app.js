@@ -14,7 +14,7 @@ const globalErrorHandler = require('./controllers/errorController');
 
 const userRouter = require('./routes/userRoutes');
 const chatRouter = require('./routes/chatRoutes');
-const messageRouter = require('./routes/messageRoutes');
+// const messageRouter = require('./routes/messageRoutes');
 
 // Start express app
 const app = express();
@@ -55,7 +55,7 @@ app.use(compression());
 // Routes
 app.use('/api/users', userRouter);
 app.use('/api/chats', chatRouter);
-app.use('/api/messages', messageRouter);
+// app.use('/api/messages', messageRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

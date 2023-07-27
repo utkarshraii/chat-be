@@ -19,15 +19,15 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'default.jpg',
   },
-  //   role: {
-  //     type: String,
-  //     enum: ['user', 'guide', 'lead-guide', 'admin'],
-  //     default: 'user',
-  //   },
+
+  about: {
+    type: String,
+  },
+
   password: {
     type: String,
     required: [true, 'Please provide a password'],
-    minlength: 8,
+    minlength: [4, 'password must be at least 4 characters'],
     select: false,
   },
   // passwordConfirm: {
@@ -54,12 +54,22 @@ const userSchema = new mongoose.Schema({
   otpExpiresTime: {
     type: Date,
   },
+
   friends: [
     {
       type: mongoose.Schema.ObjectId,
       ref: 'User',
     },
   ],
+
+  groups: [
+    // String,
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: 'Room',
+    },
+  ],
+
   socket_id: {
     type: String,
   },
