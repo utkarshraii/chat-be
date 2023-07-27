@@ -38,6 +38,7 @@ const createSendToken = (user, statusCode, req, res) => {
     data: {
       user,
     },
+    user_id: user._id,
   });
 };
 
@@ -46,7 +47,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     name: req.body.name,
     email: req.body.email,
     password: req.body.password,
-    passwordConfirm: req.body.passwordConfirm,
+    // passwordConfirm: req.body.passwordConfirm,
   });
 
   const url = `${req.protocol}://${req.get('host')}/me`;

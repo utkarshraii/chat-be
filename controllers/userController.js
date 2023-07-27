@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const FriendRequest = require('../models/friendRequestModel');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const filterObject = require('../utils/filterObject');
@@ -49,3 +50,51 @@ exports.getUsers = catchAsync(async (req, res, next) => {
 
   res.status(200).json(users);
 });
+
+exports.getUsers2 = async (req, res, next) => {
+  const all_users = await User.find({
+    verified: true,
+  }).select('name _id photo');
+
+  // const all_requests = await FriendRequest.find({
+  //   $or: [{ sender: req.user._id }, { recipient: req.user._id }],
+  // });
+
+  const this_user = req.user;
+
+  const remaining_users = all_users.filter(
+    (user) =>
+      !this_user.friends.includes(user._id) &&
+      user._id.toString() !== req.user._id.toString()
+  );
+
+  res.status(200).json({
+    status: 'success',
+    data: remaining_users,
+    message: 'Users found successfully!',
+  });
+};
+
+exports.getRequests = async (req, res, next) => {
+  const requests = await FriendRequest.find({ recipient: req.user._id })
+    .populate('sender')
+    .select('_id name photo');
+
+  res.status(200).json({
+    status: 'success',
+    data: requests,
+    message: 'Requests found successfully!',
+  });
+};
+
+exports.getFriends = async (req, res, next) => {
+  const user = await User.findById(req.user._id).populate(
+    'friends',
+    '_id name photo'
+  );
+  res.status(200).json({
+    status: 'success',
+    data: user.friends,
+    message: 'Friends found successfully!',
+  });
+};
