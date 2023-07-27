@@ -66,6 +66,11 @@ const userSchema = new mongoose.Schema({
     type: String,
   },
 
+  status: {
+    type: String,
+    enum: ['Online', 'Offline'],
+  },
+
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
