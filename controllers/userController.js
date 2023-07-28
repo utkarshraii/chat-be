@@ -128,7 +128,7 @@ exports.getUsers = catchAsync(async (req, res, next) => {
 exports.getUsers2 = catchAsync(async (req, res, next) => {
   const all_users = await User.find({
     verified: true,
-  }).select('name _id photo');
+  }).select('name _id photo status');
 
   // const all_requests = await FriendRequest.find({
   //   $or: [{ sender: req.user._id }, { recipient: req.user._id }],
@@ -152,7 +152,7 @@ exports.getUsers2 = catchAsync(async (req, res, next) => {
 exports.getAllVerifiedUsers = catchAsync(async (req, res, next) => {
   const all_users = await User.find({
     verified: true,
-  }).select('name _id');
+  }).select('name _id photo status');
 
   const remaining_users = all_users.filter(
     (user) => user._id.toString() !== req.user._id.toString()
@@ -168,7 +168,7 @@ exports.getAllVerifiedUsers = catchAsync(async (req, res, next) => {
 exports.getRequests = catchAsync(async (req, res, next) => {
   const requests = await FriendRequest.find({ recipient: req.user._id })
     .populate('sender')
-    .select('_id name photo');
+    .select('_id name photo status');
 
   res.status(200).json({
     status: 'success',
@@ -180,7 +180,7 @@ exports.getRequests = catchAsync(async (req, res, next) => {
 exports.getFriends = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.user._id).populate(
     'friends',
-    '_id name photo'
+    '_id name photo status'
   );
   res.status(200).json({
     status: 'success',

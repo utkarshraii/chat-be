@@ -27,7 +27,8 @@ const VideoCall = require('./models/videoCall');
 // Create an io server and allow for CORS from http://localhost:3000 with GET and POST methods
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    // origin: 'http://localhost:3000',
+    origin: 'https://chat-fe-ten.vercel.app',
     methods: ['GET', 'POST'],
   },
 });
@@ -57,18 +58,23 @@ io.on('connection', async (socket) => {
 
   console.log(`User connected ${socket?.id}`);
 
+  // if (user_id != null && Boolean(user_id)) {
   if (Boolean(user_id)) {
-    await User.findByIdAndUpdate(user_id, {
-      socket_id: socket.id,
-      status: 'Online',
-    });
+    try {
+      await User.findByIdAndUpdate(user_id, {
+        socket_id: socket.id,
+        status: 'Online',
+      });
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   // Fetch the user's groups from the database
   const user = await User.findById(user_id).populate('groups');
 
   // Join the user's socket to each group they belong to
-  user.groups.forEach(async (group) => {
+  user?.groups?.forEach(async (group) => {
     group.members.push(socket.id);
     await group.save({ new: true, validateModifiedOnly: true });
 
@@ -131,7 +137,7 @@ io.on('connection', async (socket) => {
   socket.on('get_direct_conversations', async ({ user_id }, callback) => {
     const existing_conversations = await OneToOneMessage.find({
       participants: { $all: [user_id] },
-    }).populate('participants', 'name _id email status');
+    }).populate('participants', 'name _id email status photo');
 
     callback(existing_conversations);
   });
@@ -145,7 +151,7 @@ io.on('connection', async (socket) => {
 
     const existing_conversations = await OneToOneMessage.find({
       participants: { $size: 2, $all: [to, from] },
-    }).populate('participants', 'name _id email status');
+    }).populate('participants', 'name _id email status photo');
 
     console.log(existing_conversations[0], 'Existing Conversation');
 
@@ -157,7 +163,7 @@ io.on('connection', async (socket) => {
 
       new_chat = await OneToOneMessage.findById(new_chat).populate(
         'participants',
-        'name _id email status'
+        'name _id email status photo'
       );
 
       console.log(new_chat);
@@ -196,12 +202,25 @@ io.on('connection', async (socket) => {
       text: message,
     };
 
-    // fetch OneToOneMessage Doc & push a new message to existing conversation
-    const chat = await OneToOneMessage.findById(conversation_id);
-
-    chat.messages.push(new_message);
-    // save to db
-    await chat.save({ new: true, validateModifiedOnly: true });
+    const oneToOneMessage = await OneToOneMessage.findOneAndUpdate(
+      {
+        participants: { $all: [from, to] },
+      },
+      {
+        $push: {
+          messages: {
+            to: to,
+            from: from,
+            type: type,
+            created_at: Date.now(),
+            text: message,
+          },
+        },
+        $inc: { unreadCount: 1 },
+        $addToSet: { readBy: to },
+      },
+      { new: true, upsert: true }
+    );
 
     // emit incoming_message -> to user
 
@@ -215,6 +234,37 @@ io.on('connection', async (socket) => {
       conversation_id,
       message: new_message,
     });
+  });
+
+  // handle reading a conversation
+  socket.on('read_conversation', async (data) => {
+    const { conversation_id, lastRecipientId } = data;
+
+    const user = await User.findById(user_id);
+
+    // console.log('from read_conv', lastRecipientId, user_id);
+
+    if (lastRecipientId === user_id) {
+      try {
+        const oneToOneMessage = await OneToOneMessage.findOneAndUpdate(
+          {
+            _id: conversation_id,
+            participants: user_id,
+          },
+          {
+            $addToSet: { readBy: user_id },
+            $set: { unreadCount: 0 },
+          },
+          { new: true }
+        );
+      } catch (error) {
+        console.log(error);
+        // handle error
+      }
+    } else {
+      // ignore the request to reset unread count
+      return;
+    }
   });
 
   // handle Media/Document Message
@@ -483,7 +533,7 @@ io.on('connection', async (socket) => {
         type: type,
         created_at: Date.now(),
         text: message,
-        sender: from_user.name,
+        sender: from_user?.name,
       };
 
       // fetch OneToOneMessage Doc & push a new message to existing conversation
@@ -492,7 +542,7 @@ io.on('connection', async (socket) => {
       // console.log('from group', group, from);
       // console.log('user socket', from_user.socket_id);
 
-      group.messages.push(new_message);
+      group?.messages.push(new_message);
       // save to db
       await group.save({ new: true, validateModifiedOnly: true });
 
@@ -543,8 +593,8 @@ io.on('connection', async (socket) => {
 
         callback({ success: true, message: 'Joined room successfully' });
 
-        user.groups.push(savedRoom?._id);
-        dubem.groups.push(savedRoom?._id);
+        user?.groups.push(savedRoom?._id);
+        dubem?.groups.push(savedRoom?._id);
 
         user.save();
         dubem.save();
@@ -566,13 +616,13 @@ io.on('connection', async (socket) => {
       return;
     }
 
-    room.members.push(socket?.id);
+    room?.members.push(socket?.id);
 
     const groupExist = user.groups.filter((group) => group == data.roomId);
 
     if (groupExist.length < 1) {
-      room.members_id.push(data.user_id);
-      user.groups.push(data.roomId);
+      room?.members_id.push(data.user_id);
+      user?.groups.push(data.roomId);
       await user.save();
     }
 
@@ -609,7 +659,7 @@ io.on('connection', async (socket) => {
         console.error(`Room ${roomId} not found`);
       } else {
         // Remove the current socket from the room's member list
-        room.members = room.members.filter((member) => member !== socket?.id);
+        room.members = room?.members.filter((member) => member !== socket?.id);
         room.save((error) => {
           if (error) {
             console.error('Failed to save room to database:', error);
@@ -658,18 +708,18 @@ io.on('connection', async (socket) => {
     }
   });
 
-  socket.on('disconnect_on_reload', async () => {
-    const groups = await Room.find({ members: socket.id });
+  // socket.on('disconnect_on_reload', async () => {
+  //   const groups = await Room.find({ members: socket.id });
 
-    // Remove the user's socket id from each group's members array
-    groups.forEach(async (group) => {
-      // group.members.pull(socket.id);
+  // // Remove the user's socket id from each group's members array
+  // groups.forEach(async (group) => {
+  //   // group.members.pull(socket.id);
 
-      group.members = group.members.filter((member) => member !== socket.id);
+  // group.members = group.members.filter((member) => member !== socket.id);
 
-      await group.save();
-    });
-  });
+  //     await group.save();
+  //   });
+  // });
 
   // ============================ Group Chat =================================
 

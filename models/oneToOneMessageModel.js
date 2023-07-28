@@ -39,6 +39,18 @@ const oneToOneMessageSchema = new mongoose.Schema({
       },
     },
   ],
+
+  unreadCount: {
+    type: Number,
+    default: 0,
+  },
+
+  readBy: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: 'User',
+    },
+  ],
 });
 
 const OneToOneMessage = mongoose.model(

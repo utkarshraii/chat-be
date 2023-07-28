@@ -43,7 +43,7 @@ const createSendToken = (user, statusCode, req, res) => {
 };
 
 exports.signup = catchAsync(async (req, res, next) => {
-  const userExists = await User.findOne({ email: body.email });
+  const userExists = await User.findOne({ email: req.body.email });
 
   if (userExists) {
     return next(new AppError('User with email already exist', 401));
@@ -58,7 +58,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     // passwordConfirm: req.body.passwordConfirm,
   });
 
-  const url = `${req.protocol}://${req.get('host')}/profile`;
+  const url = `${req.protocol}://chat-fe-ten.vercel.app/profile`;
 
   newUser.verified = true;
 
@@ -192,7 +192,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     //   'host'
     // )}/api/users/resetPassword/${resetToken}`;
 
-    const resetURL2 = `${req.protocol}://localhost:3000/auth/new-password/${resetToken}`;
+    const resetURL2 = `${req.protocol}://https://chat-fe-ten.vercel.app/auth/new-password/${resetToken}`;
 
     await new Email(user, resetURL2).sendPasswordReset();
 

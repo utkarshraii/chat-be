@@ -3,7 +3,7 @@ const path = require('path');
 const cors = require('cors');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-// const helmet = require('helmet');
+const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const cookieParser = require('cookie-parser');
@@ -24,6 +24,15 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Implement CORS
 app.use(cors());
+
+app.use(
+  cors({
+    origin: ['https://chat-fe-ten.vercel.app', 'http://localhost:3000'],
+  })
+);
+
+// Implement Helmet
+app.use(helmet());
 
 // Development logging
 if (process.env.NODE_ENV === 'development') {
